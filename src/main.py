@@ -4,18 +4,41 @@ import urllib
 import json
 import requests
 import os
+import tzlocal
+
 from dotenv import load_dotenv
+from datetime import datetime
 
-
-
-def main():
+def url_concat(end) -> str:
+    return "https://coinswitch.co" +  end
+def env():
     load_dotenv()
-    api_key = os.getenv("API_KEY")
-    secret_key = os.getenv("SECRET_KEY")
-    params = {}
+    print("loaded api keys!")
 
+def time() -> str:
+    url = url_concat("/trade/api/v2/time")
+    response = json.loads(requests.request("GET", url).text)
+    timestamp = response['serverTime'] / 1000
+
+    local_time = datetime.fromtimestamp(timestamp,tzlocal.get_localzone())
+    return local_time.strftime("%Y-%m-%d %H:%M:%S.%f (%Z)")
+def ping() -> bool:
+    url = url_concat("/trade/api/v2/ping")
+
+    response =  requests.request("GET", url)
+    if response.status_code != 404:
+        print("pinged " + url)
+        return True
+    else:
+        print("could not ping " + url)
+        return False
+def validate(api_key, secret_key):
+    if not ping():
+        return None
+    print("at", time())
+    params = {}
     endpoint = "/trade/api/v2/validate/keys"
-    url = "https://coinswitch.co" + endpoint
+    url = url_concat(endpoint)
     method = "GET"
     payload = {}
 
@@ -38,8 +61,37 @@ def main():
         'X-AUTH-APIKEY': api_key
     }
 
-    response = requests.request(method, url, headers=headers, json=payload)
-    print(response ,response.json())
+    response = requests.request("GET", url, headers=headers, json=payload)
+    if response.status_code == 200:  # Valid Access
+        print("keys validated, signature generated!")
+        return signature
+    elif response.status_code == 401: # Invalid Access
+        print("keys are invalid!")
+        return None
+
+def folio(api_key, sign):
+    endpoint = "/trade/api/v2/user/portfolio"
+    url = url_concat(endpoint)
+    payload = {}
+
+    headers = {
+        'Content-Type': 'application/json',
+        'X-AUTH-SIGNATURE': sign,
+        'X-AUTH-APIKEY': api_key
+    }
+
+    response = requests.request("GET", url, headers=headers, json=payload)
+    print(response.text)
+
+
+def main():
+    env()
+
+    api_key = os.getenv("API_KEY")
+    secret_key = os.getenv("SECRET_KEY")
+    signature = validate(api_key, secret_key)
+    folio(api_key, signature)
+
 
 
 if __name__=="__main__":
