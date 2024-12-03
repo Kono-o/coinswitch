@@ -1,3 +1,5 @@
+from inspect import signature
+
 from cryptography.hazmat.primitives.asymmetric import ed25519
 from urllib.parse import urlparse, urlencode
 import urllib
@@ -8,15 +10,20 @@ import tzlocal
 
 from dotenv import load_dotenv
 from datetime import datetime
-from termcolor import colored
 
 def url_concat(end) -> str:
     return "https://coinswitch.co" +  end
-def env():
+def load_env():
     load_dotenv()
     print("loaded api keys!")
-
-def ro(val) -> str:
+def print_colored(text, color):
+    if color == "green":
+        print('\x1b[6;30;42m' + text + '\x1b[0m')
+    elif color == "red":
+        print('\x1b[6;30;41m' + text + '\x1b[0m')
+    elif color == "yellow" :
+        print('\x1b[5;30;43m' + text + '\x1b[0m')
+def rounder(val) -> str:
     rounded = float(int(float(val) * 100.0))/100.0
     return str(rounded)
 
@@ -91,7 +98,6 @@ def coins(api_key, signature):
     print(response.json())
 def folio(api_key, signature):
     print("accessing portfolio...\n")
-    os.system("color")
     endpoint = "/trade/api/v2/user/portfolio"
     url = url_concat(endpoint)
     payload = {}
@@ -104,44 +110,77 @@ def folio(api_key, signature):
     response = requests.request("GET", url, headers=headers, json=payload)
     if response.status_code == 200:
         coin_list = json.loads(response.text)['data']
+
+        total_invest = 0.0
+        current_invest = 0.0
         for coin in coin_list:
             ticker = coin['currency']
             name = coin['name']
-            balance = ro(coin['main_balance'])
+            balance = rounder(coin['main_balance'])
             if ticker != "INR":
-                locked = ro(coin['blocked_balance_order'])
-                avg_price = ro(coin['buy_average_price'])
-                invested = ro(coin['invested_value'])
-                invested_ex_fee = ro(coin['invested_value_excluding_fee'])
-                current_value = ro(coin['current_value'])
+                locked = rounder(coin['blocked_balance_order'])
+                avg_price = rounder(coin['buy_average_price'])
+                invested = rounder(coin['invested_value'])
+                invested_ex_fee = rounder(coin['invested_value_excluding_fee'])
+                current_value = rounder(coin['current_value'])
                 #sell_rate = coin['sell_rate']
-                buy_rate = ro(coin['buy_rate'])
+                buy_rate = rounder(coin['buy_rate'])
                 #is_avg_price_available = coin['is_average_price_available']
 
-                fees = ro(str(float(invested) - float(invested_ex_fee)))
-                pnl = ro(str(float(current_value) - float(invested)))
-                pnlp = ro((float(pnl)/float(invested)) * 100.0)
+                fees = rounder(str(float(invested) - float(invested_ex_fee)))
+                pnl = rounder(str(float(current_value) - float(invested)))
+                pnlp = rounder((float(pnl) / float(invested)) * 100.0)
+                total_invest += float(invested)
+                current_invest += float(current_value)
 
-                print(name + " (" + ticker + ")")
-                print("balance: " + balance + " (locked: " + locked + ")" )
+                color = 'green'
+                if float(pnlp) < 0:
+                    color = 'red'
+
+                print_colored(name + " (" + ticker + ")", "yellow")
+                print("tokens: ⦿" + balance + " (locked: ⦿" + locked + ")")
                 print("invested: ₹" + invested_ex_fee + " + (₹" + fees + " fees) = ₹" + invested)
-                print("current: ₹" + current_value + " (" + pnl + ", " + pnlp+ "%)")
+                print_colored("current: ₹" + current_value + " (" + pnl + ", " + pnlp + " %)", color)
                 print("buy avg: ₹" + avg_price)
                 print("buy now: ₹" + buy_rate)
                 print("---------------------------------")
 
             else:
-                print("wallet: " + ticker + " (" + name + ") : ₹" + balance)
+                total_invest = 15170 #amount ive put in so far td
+                pnl = current_invest - total_invest
+                pnlp = ((pnl/total_invest) * 100.0)
 
+                color = 'green'
+                if pnlp < 0:
+                    color = 'red'
+
+                pnl = rounder(str(pnl))
+                pnlp = rounder(str(pnlp))
+                print("wallet: " + ticker + " (" + name + ") : ₹" + balance)
+                print("total invested: ₹" + rounder(str(total_invest)))
+                print_colored("current value: ₹" + rounder(str(current_invest)) + " (" + pnl + ", " + pnlp + " %)", color)
+def taxes(api_key, signature):
+    endpoint = "/trade/api/v2/tds"
+    url = url_concat(endpoint)
+    payload = {}
+
+    headers = {
+        'Content-Type': 'application/json',
+        'X-AUTH-SIGNATURE': signature,
+        'X-AUTH-APIKEY': api_key
+    }
+    response = requests.request("GET", url, headers=headers, json=payload)
+    print(response.json())
 
 
 def main():
-    env()
+    load_env()
     api_key = os.getenv("API_KEY")
     secret_key = os.getenv("SECRET_KEY")
-    signature = sign(api_key, secret_key)
+    sig = sign(api_key, secret_key)
 
-    folio(api_key,signature)
+    folio(api_key,sig)
+    taxes(api_key, sig)
 
 
 if __name__=="__main__":
