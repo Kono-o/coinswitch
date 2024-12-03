@@ -127,10 +127,10 @@ def port(api_key, secret_key):
         colour = 'green'
         if float(pnlp) < 0:
             colour = 'red'
-        colour(name + " (" + ticker + ")", "yellow")
+        colo(name + " (" + ticker + ")", "yellow")
         print("tokens: ⦿" + balance + " (locked: ⦿" + locked + ")")
         print("invested: ₹" + invested_ex_fee + " + (₹" + fees + " fees) = ₹" + invested)
-        colour("current: ₹" + current_value + " (" + pnl + ", " + pnlp + " %)", colour)
+        colo("current: ₹" + current_value + " (" + pnl + ", " + pnlp + " %)", colour)
         print("buy avg: ₹" + avg_price)
         print("buy now: ₹" + buy_rate)
         print("==================================")
@@ -154,5 +154,5 @@ def taxs(api_key, secret_key):
 
 def main():
     envs()
-    port(os.getenv("API_KEY"), os.getenv("SECRET_KEY"))
+    port(os.getenv("API"), os.getenv("SECRET"))
 main()
