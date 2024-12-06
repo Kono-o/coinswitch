@@ -201,7 +201,11 @@ def main():
     api = os.getenv("API")
     secret = os.getenv("SECRET")
 
+    for i in range(10):
+        print("HELLO HARSH")
+
     ping()
+    print("at"+ time())
     port(api, secret)
     info(api, "RENDER")
     info(api, "ETH")
