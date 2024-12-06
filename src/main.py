@@ -154,6 +154,8 @@ def info(api_key, ticker:str):
     endpoint = "/trade/api/v2/tradeInfo"
     symbol = ticker.upper() + "/INR"
     url = link(endpoint)
+
+    print("accessing info on " + ticker + "...")
     params = {
         "exchange": "coinswitchx",
         "symbol": symbol
@@ -199,7 +201,7 @@ def main():
     api = os.getenv("API")
     secret = os.getenv("SECRET")
 
-    ping() 
+    ping()
     port(api, secret)
     info(api, "RENDER")
     info(api, "ETH")
