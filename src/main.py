@@ -22,7 +22,7 @@ def colo(text, color):
     elif color == "yellow" :
         print('\x1b[5;30;43m' + text + '\x1b[0m')
 def rond(val) -> str:
-    rounded = float(int(float(val) * 100.0))/100.0
+    rounded = float(int(float(val) * 1000.0))/1000.0
     return str(rounded)
 
 def time() -> str:
@@ -76,6 +76,22 @@ def sign(api_key, secret_key, endpoint) -> str|None:
         #print("keys are invalid!")
         return None
 
+def taxs(api_key, secret_key):
+    endpoint = "/trade/api/v2/tds"
+    signature = sign(api_key, secret_key, endpoint)
+    url = link(endpoint)
+    payload = {}
+
+    headers = {
+        'Content-Type': 'application/json',
+        'X-AUTH-SIGNATURE': signature,
+        'X-AUTH-APIKEY': api_key
+    }
+    response = requests.request("GET", url, headers=headers, json=payload)
+    data = json.loads(response.text)['data']
+    tds = data['total_tds_amount']
+    year = data['financial_year']
+    print("tax paid " + year + ": ₹" + rond(tds))
 def port(api_key, secret_key):
     print("accessing portfolio...\n")
     endpoint = "/trade/api/v2/user/portfolio"
@@ -110,15 +126,14 @@ def port(api_key, secret_key):
             print("wallet: ₹" + balance)
             print("total invested: ₹" + rond(str(total_invest)))
             colo("current value: ₹" + rond(str(current_invest)) + " (" + pnl + ", " + pnlp + " %)", colour)
+            print("==================================")
             break
         locked = rond(coin['blocked_balance_order'])
         avg_price = rond(coin['buy_average_price'])
         invested = rond(coin['invested_value'])
         invested_ex_fee = rond(coin['invested_value_excluding_fee'])
         current_value = rond(coin['current_value'])
-        #sell_rate = coin['sell_rate']
         buy_rate = rond(coin['buy_rate'])
-        #is_avg_price_available = coin['is_average_price_available']
         fees = rond(str(float(invested) - float(invested_ex_fee)))
         pnl = rond(str(float(current_value) - float(invested)))
         pnlp = rond((float(pnl) / float(invested)) * 100.0)
@@ -134,25 +149,60 @@ def port(api_key, secret_key):
         print("buy avg: ₹" + avg_price)
         print("buy now: ₹" + buy_rate)
         print("==================================")
-    taxs(api_key, secret_key)
-def taxs(api_key, secret_key):
-    endpoint = "/trade/api/v2/tds"
+
+def info(api_key, ticker:str):
+    endpoint = "/trade/api/v2/tradeInfo"
+    symbol = ticker.upper() + "/INR"
+    url = link(endpoint)
+    params = {
+        "exchange": "coinswitchx",
+        "symbol": symbol
+    }
+    headers = {
+        'Content-Type': 'application/json',
+        'X-AUTH-APIKEY': api_key
+    }
+
+    response = requests.request("GET", url, headers=headers, params=params)
+    inf = json.loads(response.text)['data']['coinswitchx'][symbol]['quote']
+    min = inf['min']
+    print(ticker + " min sell amt: ₹" + min + ".0")
+    return float(min)
+
+
+def order(api_key, secret_key):
+    endpoint = "/trade/api/v2/order"
     signature = sign(api_key, secret_key, endpoint)
     url = link(endpoint)
-    payload = {}
+
+    payload = {
+        "side": "sell",
+        "symbol": "ETH/INR",
+        "type": "limit",
+        "price": 15000,
+        "quantity": 0.004,
+        "exchange": "coinswitchx"
+    }
 
     headers = {
         'Content-Type': 'application/json',
         'X-AUTH-SIGNATURE': signature,
         'X-AUTH-APIKEY': api_key
     }
-    response = requests.request("GET", url, headers=headers, json=payload)
-    data = json.loads(response.text)['data']
-    tds = data['total_tds_amount']
-    year = data['financial_year']
-    print("tax paid " + year + ": ₹" + rond(tds))
+
+    response = requests.request("POST", url, headers=headers, json=payload)
+    print(response.status_code)
+    print(response.text)
 
 def main():
     envs()
-    port(os.getenv("API"), os.getenv("SECRET"))
+    api = os.getenv("API")
+    secret = os.getenv("SECRET")
+
+    ping() 
+    port(api, secret)
+    info(api, "RENDER")
+    info(api, "ETH")
+    order(api, secret)
+
 main()
