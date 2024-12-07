@@ -14,95 +14,74 @@ def link(end) -> str:
 def envs():
     load_dotenv()
     print("loaded api keys!")
+    return os.getenv("API"),os.getenv("SECRET")
 def colo(text, color):
-    if color == "green":
-        print('\x1b[6;30;42m' + text + '\x1b[0m')
-    elif color == "red":
-        print('\x1b[6;30;41m' + text + '\x1b[0m')
-    elif color == "yellow" :
-        print('\x1b[5;30;43m' + text + '\x1b[0m')
+    print({'green': '\x1b[6;30;42m', 'red': '\x1b[6;30;41m', 'yellow': '\x1b[5;30;43m'}.get(color, '') + text + '\x1b[0m')
 def rond(val) -> str:
     rounded = float(int(float(val) * 1000.0))/1000.0
     return str(rounded)
-
 def time() -> str:
-    url = link("/trade/api/v2/time")
-    response = json.loads(requests.request("GET", url).text)
+    response = requests.get(link("/trade/api/v2/time")).json()
     timestamp = response['serverTime'] / 1000
-
-    local_time = datetime.fromtimestamp(timestamp,tzlocal.get_localzone())
-    return local_time.strftime("%Y-%m-%d %H:%M:%S.%f (%Z)")
-def ping() -> bool:
+    return datetime.fromtimestamp(timestamp, tzlocal.get_localzone()).strftime("%Y-%m-%d %H:%M:%S.%f (%Z)")
+def ping():
     url = link("/trade/api/v2/ping")
+    if requests.get(url).ok:
+        print(f"pinged {link("")} at {time()}"); return
+    print(f"could not ping {link("")} at {time()}")
 
-    response =  requests.request("GET", url)
-    if response.status_code != 404:
-        print("pinged " + url)
-        return True
-    else:
-        print("could not ping " + url)
-        return False
-def sign(api_key, secret_key, endpoint) -> str|None:
-    #if not ping():
-    #    return None
-    #print("at", time())
+def sign(key, endpoint) -> str:
     params = {}
     url = link(endpoint)
     method = "GET"
     payload = {}
-
-    unquote_endpoint = endpoint
-    if method == "GET" and len(params) != 0:
+    unquote = endpoint
+    if len(params) != 0:
         endpoint += ('&', '?')[urlparse(endpoint).query == ''] + urlencode(params)
-        unquote_endpoint = urllib.parse.unquote_plus(endpoint)
-
-    signature_msg = method + unquote_endpoint + json.dumps(payload, separators=(',', ':'), sort_keys=True)
+        unquote = urllib.parse.unquote_plus(endpoint)
+    signature_msg = method + unquote + json.dumps(payload, separators=(',', ':'), sort_keys=True)
 
     request_string = bytes(signature_msg, 'utf-8')
-    secret_key_bytes = bytes.fromhex(secret_key)
+    secret_key_bytes = bytes.fromhex(key[1])
     secret_key = ed25519.Ed25519PrivateKey.from_private_bytes(secret_key_bytes)
     signature_bytes = secret_key.sign(request_string)
     signature = signature_bytes.hex()
     headers = {
         'Content-Type': 'application/json',
         'X-AUTH-SIGNATURE': signature,
-        'X-AUTH-APIKEY': api_key
+        'X-AUTH-APIKEY': key[0]
     }
-    response = requests.request("GET", url, headers=headers, json=payload)
-    if response.status_code == 200:  # Valid Access
-        #print("keys validated, signature generated!")
+    response = requests.request(method, url, headers=headers, json=payload)
+    if response.status_code == 200:
         return signature
-    elif response.status_code == 401: # Invalid Access
-        #print("keys are invalid!")
-        return None
 
-def taxs(api_key, secret_key):
+def taxs(key):
     endpoint = "/trade/api/v2/tds"
-    signature = sign(api_key, secret_key, endpoint)
+    signature = sign(key, endpoint)
     url = link(endpoint)
     payload = {}
 
     headers = {
         'Content-Type': 'application/json',
         'X-AUTH-SIGNATURE': signature,
-        'X-AUTH-APIKEY': api_key
+        'X-AUTH-APIKEY': key[0]
     }
     response = requests.request("GET", url, headers=headers, json=payload)
     data = json.loads(response.text)['data']
     tds = data['total_tds_amount']
     year = data['financial_year']
     print("tax paid " + year + ": ₹" + rond(tds))
-def port(api_key, secret_key):
+def port(key):
     print("accessing portfolio...\n")
     endpoint = "/trade/api/v2/user/portfolio"
-    signature = sign(api_key, secret_key, endpoint)
+    signature = sign(key, endpoint)
     url = link(endpoint)
     payload = {}
 
     headers = {
         'Content-Type': 'application/json',
         'X-AUTH-SIGNATURE': signature,
-        'X-AUTH-APIKEY': api_key
+        'X-AUTH-APIKEY': key[0]
     }
     response = requests.request("GET", url, headers=headers, json=payload)
     if response.status_code != 200:
@@ -115,7 +94,6 @@ def port(api_key, secret_key):
         name = coin['name']
         balance = rond(coin['main_balance'])
         if ticker == "INR":
-            total_invest = 15170  # amount ive put in so far td
             pnl = current_invest - total_invest
             pnlp = ((pnl / total_invest) * 100.0)
             colour = 'green'
@@ -126,6 +104,7 @@ def port(api_key, secret_key):
             print("wallet: ₹" + balance)
             print("total invested: ₹" + rond(str(total_invest)))
             colo("current value: ₹" + rond(str(current_invest)) + " (" + pnl + ", " + pnlp + " %)", colour)
+            taxs(key)
             print("==================================")
             break
         locked = rond(coin['blocked_balance_order'])
@@ -150,31 +129,29 @@ def port(api_key, secret_key):
         print("buy now: ₹" + buy_rate)
         print("==================================")
 
-def info(api_key, ticker:str):
-    endpoint = "/trade/api/v2/tradeInfo"
-    symbol = ticker.upper() + "/INR"
-    url = link(endpoint)
+def info(key, ticker):
+    url = link("/trade/api/v2/tradeInfo")
+    symbol = f"{ticker.upper()}/INR"
+    print(f"accessing info on {ticker}...")
 
-    print("accessing info on " + ticker + "...")
-    params = {
-        "exchange": "coinswitchx",
-        "symbol": symbol
-    }
-    headers = {
-        'Content-Type': 'application/json',
-        'X-AUTH-APIKEY': api_key
-    }
-
-    response = requests.request("GET", url, headers=headers, params=params)
-    inf = json.loads(response.text)['data']['coinswitchx'][symbol]['quote']
-    min = inf['min']
-    print(ticker + " min sell amt: ₹" + min + ".0")
-    return float(min)
-
-
-def order(api_key, secret_key):
+    response = requests.get(
+        url,
+        headers={
+            'Content-Type': 'application/json',
+            'X-AUTH-APIKEY': key[0]
+        },
+        params={
+            "exchange": "coinswitchx",
+            "symbol": symbol
+        }
+    )
+    minim = response.json()['data']['coinswitchx'][symbol]['quote']['min']
+    print(f"min sell amt: ₹{minim}.0")
+    print("==================================")
+    return float(minim)
+def order(key):
     endpoint = "/trade/api/v2/order"
-    signature = sign(api_key, secret_key, endpoint)
+    signature = sign(key, endpoint)
     url = link(endpoint)
 
     payload = {
@@ -189,7 +166,7 @@ def order(api_key, secret_key):
     headers = {
         'Content-Type': 'application/json',
         'X-AUTH-SIGNATURE': signature,
-        'X-AUTH-APIKEY': api_key
+        'X-AUTH-APIKEY': key[0]
     }
 
     response = requests.request("POST", url, headers=headers, json=payload)
@@ -197,18 +174,11 @@ def order(api_key, secret_key):
     print(response.text)
 
 def main():
-    envs()
-    api = os.getenv("API")
-    secret = os.getenv("SECRET")
-
-    for i in range(10):
-        print("HELLO HARSH")
-
+    key = envs()
     ping()
-    print("at"+ time())
-    port(api, secret)
-    info(api, "RENDER")
-    info(api, "ETH")
-    order(api, secret)
+    port(key)
+    info(key, "RENDER")
+    info(key, "ETH")
+    order(key)
 
 main()
