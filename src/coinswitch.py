@@ -33,6 +33,11 @@ class CoinSwitch:
             print(time + util.link("") + " is up!")
         else:
             print(time + util.link("") + "may be down.")
+    def refresh(self):
+        tax, self.fiscal_year = api.tds(self.keys['api'], self.signatures['tax'], self.endpoints['tax'])
+        self.portfolio = api.folio(self.keys['api'], self.signatures['portfolio'], self.endpoints['portfolio'], tax)
+        print(self.time() + "portfolio has been refreshed!")
+
     def info(self, ticker):
         ticker = ticker.upper()
         is_valid, minim = api.info(ticker, self.keys['api'], self.endpoints['info'])
@@ -45,13 +50,28 @@ class CoinSwitch:
             api.token_display(self.portfolio[ticker],ticker, True)
         else:
             print("not in portfolio.")
-
-    def refresh(self):
-        tax, self.fiscal_year = api.tds(self.keys['api'], self.signatures['tax'], self.endpoints['tax'])
-        self.portfolio = api.folio(self.keys['api'], self.signatures['portfolio'], self.endpoints['portfolio'], tax)
-        print(self.time() + "portfolio has been refreshed!")
-    def show_folio(self):
+    def folio(self):
         api.folio_display(self.portfolio)
+    def order(self, action, ticker, quantity, price):
+        price_whole = (1.0/quantity) * price
+        print(f"sending order to {action} ⦿{util.decimalize(quantity)} {ticker.upper()} for ₹{util.decimalize(price)} (₹{util.decimalize(price_whole)} per token)...")
+        valid, order = api.sign_order(self.keys, self.endpoints['order'], action, ticker, price_whole, quantity)
+        if valid == 0:
+            util.print_color("success!", "green")
+            print("order id:", order['id'])
+            util.print_line()
+            return
+        util.print_color("failed!", "red")
+        match valid:
+            case 1:
+                print("wrong action or token.")
+            case 2:
+                print("not enough token.")
+            case 3:
+                print("too less token. (less than ₹150)")
+            case 4:
+                print("unexpected error.")
+        util.print_line()
 
     def time(self) -> str:
-        return api.time(self.endpoints['time'])
+        return api.server_time(self.endpoints['time'])

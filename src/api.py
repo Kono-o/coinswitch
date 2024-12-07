@@ -1,11 +1,16 @@
 from datetime import datetime
+from urllib.parse import urlparse, urlencode
+import urllib
+
+import time
+
 import requests
 import tzlocal
 from cryptography.hazmat.primitives.asymmetric import ed25519
 import json
 from util import *
 
-def time(endpoint) -> str:
+def server_time(endpoint) -> str:
     response = requests.get(link(endpoint)).json()
     timestamp = response['serverTime'] / 1000
     return "[" + datetime.fromtimestamp(timestamp, tzlocal.get_localzone()).strftime("%Y-%m-%d at %H:%M:%S") + "] "
@@ -15,13 +20,52 @@ def ping(endpoint):
 def sign(keys, endpoints) -> dict:
     signatures = {}
     for end in endpoints:
+        if end == 'order':
+            continue
         endpoint = "/trade/api/v2/" + endpoints[end]
         payload = {}
-        unquote = endpoint
-        signature_msg = "GET" + unquote + json.dumps(payload, separators=(',', ':'), sort_keys=True)
+
+        signature_msg = "GET" + endpoint + json.dumps(payload, separators=(',', ':'), sort_keys=True)
         secret_key = ed25519.Ed25519PrivateKey.from_private_bytes(bytes.fromhex(keys['secret']))
         signatures[end] = secret_key.sign(bytes(signature_msg, 'utf-8')).hex()
+
     return signatures
+def sign_order(keys, endpoint, action, symbol, price, quantity) -> {int, dict}:
+    endpoint_old = endpoint
+    endpoint = "/trade/api/v2/" + endpoint
+    payload = {
+        "side": action,
+        "symbol": symbol + "/INR",
+        "type": "limit",
+        "price": price,
+        "quantity": quantity,
+        "exchange": "coinswitchx"
+    }
+
+    epoch_time = str(int(time.time() * 1000))
+
+    signature_msg = "POST" + endpoint + epoch_time
+    secret_key = ed25519.Ed25519PrivateKey.from_private_bytes(bytes.fromhex(keys['secret']))
+    signature = secret_key.sign(bytes(signature_msg, 'utf-8')).hex()
+
+    response = requests.post(link(endpoint_old), headers = headers_epoch(signature,keys['api'],epoch_time), json = payload)
+    if response.ok:
+        data = response.json()['data']
+        return 0, {
+            'id': data['order_id'],
+            'symbol': data['symbol'],
+            'price': data['price'],
+            'quantity': data['orig_qty'],
+        }
+    elif response.status_code == 422:
+        return 1, {} #wrong action or token
+    elif response.status_code == 424:
+        return 2, {} #not enough token
+    elif response.status_code == 423:
+        return 3, {}  #too less token <150
+    else:
+        return 4
+
 def tds(key, signature, endpoint) -> {float, str}:
     response = requests.get(link(endpoint),headers = headers(signature, key))
     data = response.json()['data']
@@ -91,31 +135,8 @@ def info(ticker, key, endpoint) -> {bool, float}:
         return True, float(response['data']['coinswitchx'][symbol]['quote']['min'])
     else:
         return False, 0.0
-
-
-def order(keys):
-    endpoint = "/trade/api/v2/order"
-    signature = sign(keys, endpoint)
-    url = link(endpoint)
-
-    payload = {
-        "side": "sell",
-        "symbol": "ETH/INR",
-        "type": "limit",
-        "price": 15000,
-        "quantity": 0.004,
-        "exchange": "coinswitchx"
-    }
-
-    headers = {
-        'Content-Type': 'application/json',
-        'X-AUTH-SIGNATURE': signature,
-        'X-AUTH-APIKEY': keys['api']
-    }
-
-    response = requests.request("POST", url, headers=headers, json=payload)
-    print(response.status_code)
-    print(response.text)
+def order(keys, endpoint, action, ticker, quantity, price) -> {int, dict}:
+    return sign_order(keys, endpoint, action, f"{ticker.upper()}/INR", price, quantity)
 
 def folio_display(portfolio):
     print("displaying portfolio...")

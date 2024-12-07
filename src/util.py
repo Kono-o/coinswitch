@@ -27,6 +27,14 @@ def headers(signature, key) -> dict:
         'X-AUTH-SIGNATURE': signature,
         'X-AUTH-APIKEY': key
     }
+
+def headers_epoch(signature,key,epoch) -> dict:
+    return {
+        'Content-Type': 'application/json',
+        'X-AUTH-SIGNATURE': signature,
+        'X-AUTH-APIKEY': key,
+        'X-AUTH-EPOCH': epoch
+    }
 def headers_no_sign(key) -> dict:
     return {
         'Content-Type': 'application/json',
