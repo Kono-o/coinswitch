@@ -54,6 +54,12 @@ class CoinSwitch:
     def folio(self):
         api.folio_display(self.portfolio)
     def order(self, action, ticker, quantity, price):
+        if quantity == 0 or price == 0:
+            print(
+                f"sending order to {action} ⦿{util.decimalize(quantity)} {ticker.upper()} for ₹{util.decimalize(price)}...")
+            util.print_color("failed!", "red")
+            print("not enough token or price.")
+            return
         price_whole = (1.0/quantity) * price
         print(f"sending order to {action} ⦿{util.decimalize(quantity)} {ticker.upper()} for ₹{util.decimalize(price)} (₹{util.decimalize(price_whole)} per token)...")
         valid, order = api.sign_order(self.keys, self.endpoints['order'], action, ticker, price_whole, quantity)

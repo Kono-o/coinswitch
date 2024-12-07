@@ -5,6 +5,6 @@ def main():
     session.ping()
     session.folio()
     session.info("render")
-    session.order("sell", "render", 1.0, 500)
+    session.order("sell", "render", 0.0, 0.0)
 
 main()
