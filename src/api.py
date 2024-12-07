@@ -1,9 +1,5 @@
 from datetime import datetime
-from urllib.parse import urlparse, urlencode
-import urllib
-
 import time
-
 import requests
 import tzlocal
 from cryptography.hazmat.primitives.asymmetric import ed25519
@@ -64,7 +60,7 @@ def sign_order(keys, endpoint, action, symbol, price, quantity) -> {int, dict}:
     elif response.status_code == 423:
         return 3, {}  #too less token <150
     else:
-        return 4
+        return 4, {}
 
 def tds(key, signature, endpoint) -> {float, str}:
     response = requests.get(link(endpoint),headers = headers(signature, key))

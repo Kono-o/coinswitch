@@ -33,6 +33,7 @@ class CoinSwitch:
             print(time + util.link("") + " is up!")
         else:
             print(time + util.link("") + "may be down.")
+        util.print_line()
     def refresh(self):
         tax, self.fiscal_year = api.tds(self.keys['api'], self.signatures['tax'], self.endpoints['tax'])
         self.portfolio = api.folio(self.keys['api'], self.signatures['portfolio'], self.endpoints['portfolio'], tax)
@@ -66,7 +67,7 @@ class CoinSwitch:
             case 1:
                 print("wrong action or token.")
             case 2:
-                print("not enough token.")
+                print("not enough token or balance.")
             case 3:
                 print("too less token. (less than ₹150)")
             case 4:
