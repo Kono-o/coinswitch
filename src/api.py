@@ -1,17 +1,12 @@
-import time
-import urllib
+import time, urllib, requests, json, util
 from urllib.parse import urlparse, urlencode
-
-import requests
 from cryptography.hazmat.primitives.asymmetric import ed25519
-import json
-from util import *
 
 def server_time(endpoint) -> str:
-    response = requests.get(link(endpoint)).json()
-    return chronify(response['serverTime'])
+    response = requests.get(util.link(endpoint)).json()
+    return util.chronify(response['serverTime'])
 def ping(endpoint):
-    return requests.get(link(endpoint)).ok
+    return requests.get(util.link(endpoint)).ok
 
 def sign(keys, endpoints) -> dict:
     signatures = {}
@@ -44,7 +39,7 @@ def sign_order(keys, endpoint, action, symbol, price, quantity) -> {int, dict}:
     secret_key = ed25519.Ed25519PrivateKey.from_private_bytes(bytes.fromhex(keys['secret']))
     signature = secret_key.sign(bytes(signature_msg, 'utf-8')).hex()
 
-    response = requests.post(link(endpoint_old), headers = headers_epoch(signature,keys['api'],epoch_time), json = payload)
+    response = requests.post(util.link(endpoint_old), headers = util.headers_epoch(signature,keys['api'],epoch_time), json = payload)
     if response.ok:
         data = response.json()['data']
         return 0, {
@@ -52,7 +47,7 @@ def sign_order(keys, endpoint, action, symbol, price, quantity) -> {int, dict}:
             'symbol': data['symbol'],
             'price': data['price'],
             'quantity': data['orig_qty'],
-            'time': chronify(data['created_time'])
+            'time': util.chronify(data['created_time'])
         }
     elif response.status_code == 422:
         return 1, {} #wrong action or token
@@ -78,7 +73,7 @@ def sign_candle(ticker, keys, endpoint) -> {bool, dict}:
     signature = signature_bytes.hex()
 
     url = "https://coinswitch.co" + endpoint
-    response = requests.get(url, headers=headers_epoch(signature, keys['api'], epoch_time), json=payload)
+    response = requests.get(url, headers=util.headers_epoch(signature, keys['api'], epoch_time), json=payload)
     if response.ok:
         data = response.json()['data']['coinswitchx']
         return True , {
@@ -88,19 +83,19 @@ def sign_candle(ticker, keys, endpoint) -> {bool, dict}:
             'low': data['lowPrice'],
             'current': data['lastPrice'],
             'percen': data['percentageChange'],
-            'time': chronify(data['at'])
+            'time': util.chronify(data['at'])
         }
     else:
         return False, {}
 
 def tds(key, signature, endpoint) -> {float, str}:
-    response = requests.get(link(endpoint),headers = headers(signature, key))
+    response = requests.get(util.link(endpoint),headers = util.headers(signature, key))
     data = response.json()['data']
     return float(data['total_tds_amount']), data['financial_year']
 def folio(key, signature, endpoint, tax) -> dict:
     portfolio = {}
     payload = {}
-    response = requests.get(link(endpoint), headers = headers(signature, key), json=payload)
+    response = requests.get(util.link(endpoint), headers = util.headers(signature, key), json=payload)
     coin_list = json.loads(response.text)['data']
     total_invest = current_invest_value = 0.0
 
@@ -155,7 +150,7 @@ def folio(key, signature, endpoint, tax) -> dict:
     return portfolio
 def info(ticker, key, endpoint) -> {bool, float}:
     symbol = f"{ticker.upper()}/INR"
-    response = requests.get(link(endpoint), headers=headers_no_sign(key),
+    response = requests.get(util.link(endpoint), headers=util.headers_no_sign(key),
                             params={"exchange": "coinswitchx", "symbol": symbol}).json()
     if symbol in response['data']['coinswitchx']:
         return True, float(response['data']['coinswitchx'][symbol]['quote']['min'])
@@ -166,48 +161,48 @@ def order(keys, endpoint, action, ticker, quantity, price) -> {int, dict}:
 
 def folio_display(portfolio):
     pnl = portfolio["STATS"]['pnl']
-    color = num_to_color_bg(pnl)
-    color_dark = num_to_color_dark(pnl)
-    pnl = decimalize(pnl)
-    pnlp = decimalize(portfolio["STATS"]['pnlp'])
-    tax = decimalize(portfolio["STATS"]['tax'])
-    total_invest = decimalize(portfolio["STATS"]['total_invest'])
-    current_value = decimalize(portfolio["STATS"]['current_value'])
+    color = util.num_to_color_bg(pnl)
+    color_dark = util.num_to_color_dark(pnl)
+    pnl = util.decimalize(pnl)
+    pnlp = util.decimalize(portfolio["STATS"]['pnlp'])
+    tax = util.decimalize(portfolio["STATS"]['tax'])
+    total_invest = util.decimalize(portfolio["STATS"]['total_invest'])
+    current_value = util.decimalize(portfolio["STATS"]['current_value'])
 
     for ticker in portfolio:
         if ticker == "WALLET":
-           print_color("WALLET", "bold_bg_yellow")
-           print_color("wallet: ₹" + decimalize(portfolio["WALLET"]['balance']), color_dark)
+           util.print_color("WALLET", "bold_bg_yellow")
+           util.print_color("wallet: ₹" + util.decimalize(portfolio["WALLET"]['balance']), color_dark)
            break
         token_display(portfolio[ticker], ticker, False)
 
-    print_color("tax paid: ₹" + tax, color_dark)
-    print_color("total invested: ₹" + total_invest, color_dark)
-    print_color("current value: ₹" + current_value + " (" + pnl + ", " + pnlp + " %)", color)
-    print_line()
+    util.print_color("tax paid: ₹" + tax, color_dark)
+    util.print_color("total invested: ₹" + total_invest, color_dark)
+    util.print_color("current value: ₹" + current_value + " (" + pnl + ", " + pnlp + " %)", color)
+    util.print_line()
 def token_display(token,ticker, display_zero):
-    balance = decimalize(token['balance'])
-    locked = decimalize(token['locked'])
-    invested = decimalize(token['invested'])
-    invested_ex_fee = decimalize(token['invested_ex_fee'])
-    current_value = decimalize(token['current_value'])
-    fees = decimalize(token['fees'])
+    balance = util.decimalize(token['balance'])
+    locked = util.decimalize(token['locked'])
+    invested = util.decimalize(token['invested'])
+    invested_ex_fee = util.decimalize(token['invested_ex_fee'])
+    current_value = util.decimalize(token['current_value'])
+    fees = util.decimalize(token['fees'])
 
-    buy_avg = decimalize(token['buy_avg'])
-    buy_now = decimalize(token['buy_now'])
+    buy_avg = util.decimalize(token['buy_avg'])
+    buy_now = util.decimalize(token['buy_now'])
 
     pnl = token['pnl']
-    color = num_to_color(pnl)
-    color_dark = num_to_color_dark(pnl)
-    pnl = decimalize(pnl)
-    pnlp = decimalize(token['pnlp'])
+    color = util.num_to_color(pnl)
+    color_dark = util.num_to_color_dark(pnl)
+    pnl = util.decimalize(pnl)
+    pnlp = util.decimalize(token['pnlp'])
 
     if (balance == "0.0" and locked == "0.0") and not display_zero:
         return
-    print_color(token['name'] + " ($" + ticker + ")", "bold_bg_yellow")
-    print_color("tokens: ⦿" + balance + " (locked: ⦿" + locked + ")", color_dark)
-    print_color("buy avg: ₹" + buy_avg, color_dark)
-    print_color("buy now: ₹" + buy_now, color_dark)
-    print_color("invested: ₹" + invested_ex_fee + " + (₹" + fees + " fees) = ₹" + invested, color_dark)
-    print_color("current: ₹" + current_value + " (₹" + pnl + ", " + pnlp + " %)", color)
-    print_line()
+    util.print_color(token['name'] + " ($" + ticker + ")", "bold_bg_yellow")
+    util.print_color("tokens: ⦿" + balance + " (locked: ⦿" + locked + ")", color_dark)
+    util.print_color("buy avg: ₹" + buy_avg, color_dark)
+    util.print_color("buy now: ₹" + buy_now, color_dark)
+    util.print_color("invested: ₹" + invested_ex_fee + " + (₹" + fees + " fees) = ₹" + invested, color_dark)
+    util.print_color("current: ₹" + current_value + " (₹" + pnl + ", " + pnlp + " %)", color)
+    util.print_line()

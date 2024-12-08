@@ -11,4 +11,5 @@ def main():
     session.candle("btc")
 
     session.folio()
+
 main()

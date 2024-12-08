@@ -1,7 +1,5 @@
-import os
+import os, tzlocal
 from datetime import datetime
-
-import tzlocal
 from dotenv import load_dotenv
 
 def env():

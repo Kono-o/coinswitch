@@ -1,9 +1,5 @@
+import api, util
 from dataclasses import dataclass
-
-import api
-import util
-from src.util import print_color
-
 
 @dataclass
 class CS:
@@ -123,7 +119,7 @@ class CS:
             case 4:
                 util.print_color("unexpected error.", color)
         util.print_line()
-    def candle(self, ticker):
+    def candle(self, ticker) -> {bool, dict}:
         api_call = f"-> api.candle -> "
         time = self.time()
         ticker_upper = ticker.upper()
@@ -134,14 +130,15 @@ class CS:
             pnl = float(candle['percen'])
             color = util.num_to_color(pnl)
             color_dark = util.num_to_color_dark(pnl)
-            print_color(f"${candle['ticker']} (24 hr)", "bold_bg_yellow")
-            print_color(f"current: ₹{candle['current']} ({str(pnl)}%)", color)
-            print_color(f"1d high: ₹{candle['high']}", color_dark)
-            print_color(f"1d low: ₹{candle['low']}", color_dark)
+            util.print_color(f"${candle['ticker']} (24 hr)", "bold_bg_yellow")
+            util.print_color(f"current: ₹{candle['current']} ({str(pnl)}%)", color)
+            util.print_color(f"1d high: ₹{candle['high']}", color_dark)
+            util.print_color(f"1d low: ₹{candle['low']}", color_dark)
             util.print_line()
-            return
+            return True, candle
         util.print_color(f"${ticker_upper} not a valid token.", "bold_red")
         util.print_line()
+        return False, {}
 
     def buy(self, ticker, quantity, price):
         self.order("buy", ticker, quantity, price)
