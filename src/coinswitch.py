@@ -2,9 +2,11 @@ from dataclasses import dataclass
 
 import api
 import util
+from src.util import print_color
+
 
 @dataclass
-class CoinSwitch:
+class CS:
     fiscal_year: str
     keys: dict
     signatures: dict
@@ -22,7 +24,8 @@ class CoinSwitch:
             'portfolio': "user/portfolio",
             'info': "tradeInfo",
             'tax': "tds",
-            'order': "order"
+            'order': "order",
+            'candle': "24hr/ticker"
         }
         util.print_color("fetching keys...", "bold_blue")
         keys = util.env()
@@ -121,6 +124,25 @@ class CoinSwitch:
             case 4:
                 util.print_color("unexpected error.", color)
         util.print_line()
+    def candle(self, ticker):
+        api_call = f"-> api.candle -> "
+        time = self.time()
+        ticker_upper = ticker.upper()
+        util.print_color(api_call + time, "bold_bg_blue")
+        util.print_color(f"fetching the 24 hr candle for ${ticker_upper}...", "bold_blue")
+        valid, candle = api.sign_candle(ticker_upper, self.keys, self.endpoints['candle'])
+        if valid:
+            pnl = float(candle['percen'])
+            color = util.num_to_color_dark(pnl)
+            color_dark = util.num_to_color_dark(pnl)
+            print_color(f"${candle['ticker']} (24 hr)", "bold_bg_yellow")
+            print_color(f"current: {candle['current']} ({str(pnl)}%)", color)
+            print_color(f"high: {candle['high']}", color_dark)
+            print_color(f"low: {candle['low']}", color_dark)
+            return
+        util.print_color(f"${ticker_upper} not a valid token.", "bold_red")
+        util.print_line()
+
     def buy(self, ticker, quantity, price):
         self.order("buy", ticker, quantity, price)
     def sell(self, ticker, quantity, price):

@@ -1,11 +1,9 @@
-from coinswitch import *
-
+import coinswitch
 
 def main():
-    session = CoinSwitch.boot()
+    session = coinswitch.CS.boot()
     session.info("xrp")
-    session.refresh()
-    session.info("xrp")
-    session.info("chillguy")
-
+    session.info("doge")
+    session.candle("eth")
+    session.candle("btc")
 main()

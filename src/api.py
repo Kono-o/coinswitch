@@ -1,4 +1,7 @@
 import time
+import urllib
+from urllib.parse import urlparse, urlencode
+
 import requests
 from cryptography.hazmat.primitives.asymmetric import ed25519
 import json
@@ -59,6 +62,36 @@ def sign_order(keys, endpoint, action, symbol, price, quantity) -> {int, dict}:
         return 3, {}  #too less token <150
     else:
         return 4, {}
+def sign_candle(ticker, keys, endpoint) -> {bool, dict}:
+    endpoint = "/trade/api/v2/" + endpoint
+    method = "GET"
+    params = {
+        "symbol": f"{ticker}/INR",
+        "exchange": "coinswitchx"
+    }
+    payload = {}
+    epoch_time = str(int(time.time() * 1000))
+    endpoint += ('&', '?')[urlparse(endpoint).query == ''] + urlencode(params)
+    signature_msg = method + urllib.parse.unquote_plus(endpoint) + epoch_time
+    secret_key = ed25519.Ed25519PrivateKey.from_private_bytes(bytes.fromhex(keys['secret']))
+    signature_bytes = secret_key.sign( bytes(signature_msg, 'utf-8'))
+    signature = signature_bytes.hex()
+
+    url = "https://coinswitch.co" + endpoint
+    response = requests.get(url, headers=headers_epoch(signature, keys['api'], epoch_time), json=payload)
+    if response.ok:
+        data = response.json()['data']['coinswitchx']
+        return True , {
+            'ticker': ticker,
+            'open': data['openPrice'],
+            'high': data['highPrice'],
+            'low': data['lowPrice'],
+            'current': data['lastPrice'],
+            'percen': data['percentageChange'],
+            'time': chronify(data['at'])
+        }
+    else:
+        return False, {}
 
 def tds(key, signature, endpoint) -> {float, str}:
     response = requests.get(link(endpoint),headers = headers(signature, key))
