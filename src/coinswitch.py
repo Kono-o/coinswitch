@@ -59,32 +59,31 @@ class CS:
         util.print_color(f"success!", "bold_bg_green")
         util.print_line()
 
-    def info(self, ticker) -> {bool, dict}:
+    def pull(self, ticker) -> {bool, dict}:
         ticker = ticker.upper()
-        api_call = "-> api.info -> "
+        api_call = "-> api.pull -> "
         time = self.time()
         util.print_color( api_call + time, "bold_bg_blue")
-        util.print_color(f"fetching info on ${ticker}...", "bold_blue")
+        util.print_color(f"fetching ${ticker} from portfolio...", "bold_blue")
         is_valid, minim = api.info(ticker, self.keys['api'], self.endpoints['info'])
         if not is_valid:
             util.print_color(f"${ticker} not a valid token.", "bold_red")
             util.print_line()
             return False, {}
         if ticker in self.portfolio:
-            util.print_color("currently in portfolio.", "bold_yellow")
             token = self.portfolio[ticker]
             api.token_display(token,ticker, True)
             return True, token
         else:
-            util.print_color("not in portfolio.", "bold_yellow")
-        print(f"sell min: ₹{minim}",)
+            util.print_color("not in portfolio.", "bold_red")
+        #print(f"sell min: ₹{minim}",)
         util.print_line()
         return False, {}
     def folio(self):
         api_call = "-> api.portfolio -> "
         time = self.time()
         util.print_color(api_call + time, "bold_bg_blue")
-        util.print_color("fetching portfolio...\n", "bold_blue")
+        util.print_color("fetching portfolio...", "bold_blue")
         api.folio_display(self.portfolio)
 
     def order(self, action, ticker, quantity, price):
@@ -133,12 +132,13 @@ class CS:
         valid, candle = api.sign_candle(ticker_upper, self.keys, self.endpoints['candle'])
         if valid:
             pnl = float(candle['percen'])
-            color = util.num_to_color_dark(pnl)
+            color = util.num_to_color(pnl)
             color_dark = util.num_to_color_dark(pnl)
             print_color(f"${candle['ticker']} (24 hr)", "bold_bg_yellow")
-            print_color(f"current: {candle['current']} ({str(pnl)}%)", color)
-            print_color(f"high: {candle['high']}", color_dark)
-            print_color(f"low: {candle['low']}", color_dark)
+            print_color(f"current: ₹{candle['current']} ({str(pnl)}%)", color)
+            print_color(f"1d high: ₹{candle['high']}", color_dark)
+            print_color(f"1d low: ₹{candle['low']}", color_dark)
+            util.print_line()
             return
         util.print_color(f"${ticker_upper} not a valid token.", "bold_red")
         util.print_line()

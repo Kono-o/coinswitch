@@ -209,5 +209,5 @@ def token_display(token,ticker, display_zero):
     print_color("buy avg: ₹" + buy_avg, color_dark)
     print_color("buy now: ₹" + buy_now, color_dark)
     print_color("invested: ₹" + invested_ex_fee + " + (₹" + fees + " fees) = ₹" + invested, color_dark)
-    print_color("current: ₹" + current_value + " (" + pnl + ", " + pnlp + " %)", color)
+    print_color("current: ₹" + current_value + " (₹" + pnl + ", " + pnlp + " %)", color)
     print_line()

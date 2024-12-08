@@ -2,8 +2,13 @@ import coinswitch
 
 def main():
     session = coinswitch.CS.boot()
-    session.info("xrp")
-    session.info("doge")
+
+    session.pull("xrp")
+    session.pull("doge")
+    session.pull("xlm")
+
     session.candle("eth")
     session.candle("btc")
+
+    session.folio()
 main()
