@@ -1,13 +1,15 @@
 from coinswitch import *
 
 def main():
-    api = CoinSwitch.boot()
+    session = CoinSwitch.boot()
 
-    api.folio()
-    api.info("eth")
-    api.info("xlm")
-    api.info("fakecoin")
+    session.folio()
+    session.info("xrp")
+    session.info("xlm")
+    session.info("fake-coin")
+    session.refresh()
 
-    api.sell("eth", 1, 11)
+    session.sell("eth", 0.5, 500000)
+    session.buy("render", 10.2, 1000000)
 
 main()

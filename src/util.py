@@ -9,7 +9,7 @@ def link(end) -> str:
     return "https://coinswitch.co/trade/api/v2/" +  end
 
 def print_line():
-    print_color("========================================", "white")
+    print_color("==============================================", "white")
 def print_color(text, color):
     colors = {
         'black': '\x1b[90m',    # Bright variant of black (gray)

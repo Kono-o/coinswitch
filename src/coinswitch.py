@@ -13,6 +13,7 @@ class CoinSwitch:
 
     @classmethod
     def boot(cls):
+        util.print_line()
         api_call = "-> api.boot -> "
         util.print_color(api_call, "bold_bg_blue")
         endpoints = {
@@ -46,9 +47,14 @@ class CoinSwitch:
             util.print_color(link + " may be down.", "bold_red")
         util.print_line()
     def refresh(self):
+        api_call = "-> api.refresh -> "
+        time = self.time()
+        util.print_color(api_call + time, "bold_bg_blue")
+        util.print_color(f"refreshing portfolio...", "bold_blue")
         tax, self.fiscal_year = api.tds(self.keys['api'], self.signatures['tax'], self.endpoints['tax'])
         self.portfolio = api.folio(self.keys['api'], self.signatures['portfolio'], self.endpoints['portfolio'], tax)
-        print(self.time() + "portfolio has been refreshed!")
+        util.print_color(f"success!", "bold_bg_green")
+        util.print_line()
 
     def info(self, ticker) -> {bool, dict}:
         ticker = ticker.upper()
@@ -58,7 +64,7 @@ class CoinSwitch:
         util.print_color(f"fetching info on ${ticker}...", "bold_blue")
         is_valid, minim = api.info(ticker, self.keys['api'], self.endpoints['info'])
         if not is_valid:
-            util.print_color(f"${ticker} not a valid token", "bold_red")
+            util.print_color(f"${ticker} not a valid token.", "bold_red")
             util.print_line()
             return False, {}
         if ticker in self.portfolio:
