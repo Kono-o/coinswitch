@@ -9,11 +9,59 @@ def link(end) -> str:
     return "https://coinswitch.co/trade/api/v2/" +  end
 
 def print_line():
-    print("========================================")
+    print_color("========================================", "white")
 def print_color(text, color):
-    print({'green': '\x1b[6;30;42m', 'red': '\x1b[6;30;41m', 'yellow': '\x1b[5;30;43m'}.get(color, '') + text + '\x1b[0m')
+    colors = {
+        'black': '\x1b[90m',    # Bright variant of black (gray)
+        'red': '\x1b[91m',
+        'green': '\x1b[92m',
+        'yellow': '\x1b[93m',
+        'blue': '\x1b[94m',
+        'magenta': '\x1b[95m',
+        'cyan': '\x1b[96m',
+        'white': '\x1b[97m',
+
+        'bold_black': '\x1b[1;90m',
+        'bold_red': '\x1b[1;91m',
+        'bold_green': '\x1b[1;92m',
+        'bold_yellow': '\x1b[1;93m',
+        'bold_blue': '\x1b[1;94m',
+        'bold_magenta': '\x1b[1;95m',
+        'bold_cyan': '\x1b[1;96m',
+        'bold_white': '\x1b[1;97m',
+
+        'bg_black': '\x1b[0;30;40m',
+        'bg_red': '\x1b[0;30;41m',
+        'bg_green': '\x1b[0;30;42m',
+        'bg_yellow': '\x1b[0;30;43m',
+        'bg_blue': '\x1b[0;30;44m',
+        'bg_magenta': '\x1b[0;30;45m',
+        'bg_cyan': '\x1b[0;30;46m',
+        'bg_white': '\x1b[0;30;47m',
+
+        'bold_bg_black': '\x1b[1;30;40m',
+        'bold_bg_red': '\x1b[1;30;41m',
+        'bold_bg_green': '\x1b[1;30;42m',
+        'bold_bg_yellow': '\x1b[1;30;43m',
+        'bold_bg_blue': '\x1b[1;30;44m',
+        'bold_bg_magenta': '\x1b[1;30;45m',
+        'bold_bg_cyan': '\x1b[1;30;46m',
+        'bold_bg_white': '\x1b[1;30;47m',
+
+        'bold_under_black': '\x1b[1;4;30m',
+        'bold_under_red': '\x1b[1;4;31m',
+        'bold_under_green': '\x1b[1;4;32m',
+        'bold_under_yellow': '\x1b[1;4;33m',
+        'bold_under_blue': '\x1b[1;4;34m',
+        'bold_under_magenta': '\x1b[1;4;35m',
+        'bold_under_cyan': '\x1b[1;4;36m',
+        'bold_under_white': '\x1b[1;4;37m',
+    }
+    print(colors.get(color, '') + text + '\x1b[0m')
 def num_to_color(num) -> str:
-    return 'red' if num < 0 else 'green'
+    return 'bold_red' if num < 0 else 'bold_green'
+def num_to_color_bg(num) -> str:
+    return 'bold_bg_red' if num < 0 else 'bold_bg_green'
 
 def decimalize(val) -> str:
     rounded = float(int(val * 1000.0))/1000.0

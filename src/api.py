@@ -124,7 +124,6 @@ def folio(key, signature, endpoint, tax) -> dict:
     return portfolio
 def info(ticker, key, endpoint) -> {bool, float}:
     symbol = f"{ticker.upper()}/INR"
-    print(f"accessing info on {ticker}...")
     response = requests.get(link(endpoint), headers=headers_no_sign(key),
                             params={"exchange": "coinswitchx", "symbol": symbol}).json()
     if symbol in response['data']['coinswitchx']:
@@ -135,7 +134,6 @@ def order(keys, endpoint, action, ticker, quantity, price) -> {int, dict}:
     return sign_order(keys, endpoint, action, f"{ticker.upper()}/INR", price, quantity)
 
 def folio_display(portfolio):
-    print("displaying portfolio...")
     for ticker in portfolio:
         if ticker == "WALLET":
            print("wallet: ₹" + decimalize(portfolio["WALLET"]['balance']))
@@ -143,7 +141,7 @@ def folio_display(portfolio):
         token_display(portfolio[ticker], ticker, False)
 
     pnl = portfolio["STATS"]['pnl']
-    color = num_to_color(pnl)
+    color = num_to_color_bg(pnl)
     pnl = decimalize(pnl)
     pnlp = decimalize(portfolio["STATS"]['pnlp'])
     tax = decimalize(portfolio["STATS"]['tax'])
@@ -153,6 +151,7 @@ def folio_display(portfolio):
     print("tax paid: ₹" + tax)
     print("total invested: ₹" + total_invest)
     print_color("current value: ₹" + current_value + " (" + pnl + ", " + pnlp + " %)", color)
+    print_line()
 def token_display(token,ticker, display_zero):
     balance = decimalize(token['balance'])
     locked = decimalize(token['locked'])
@@ -171,10 +170,10 @@ def token_display(token,ticker, display_zero):
 
     if (balance == "0.0" and locked == "0.0") and not display_zero:
         return
-    print_color(token['name'] + " ($" + ticker + ")", "yellow")
+    print_color(token['name'] + " ($" + ticker + ")", "bold_bg_yellow")
     print("tokens: ⦿" + balance + " (locked: ⦿" + locked + ")")
     print("invested: ₹" + invested_ex_fee + " + (₹" + fees + " fees) = ₹" + invested)
-    print_color("current: ₹" + current_value + " (" + pnl + ", " + pnlp + " %)", color)
     print("buy avg: ₹" + buy_avg)
     print("buy now: ₹" + buy_now)
+    print_color("current: ₹" + current_value + " (" + pnl + ", " + pnlp + " %)", color)
     print_line()

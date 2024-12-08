@@ -1,10 +1,13 @@
 from coinswitch import *
 
 def main():
-    session = CoinSwitch.boot()
-    session.ping()
-    #session.folio()
-    session.info("1mbabydoge")
-    #session.order("buy", "BNB", 0.0080, 530)
+    api = CoinSwitch.boot()
+
+    api.folio()
+    api.info("eth")
+    api.info("xlm")
+    api.info("fakecoin")
+
+    api.sell("eth", 1, 11)
 
 main()
