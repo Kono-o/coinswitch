@@ -172,8 +172,8 @@ def token_display(token,ticker, display_zero):
         return
     print_color(token['name'] + " ($" + ticker + ")", "bold_bg_yellow")
     print("tokens: ⦿" + balance + " (locked: ⦿" + locked + ")")
-    print("invested: ₹" + invested_ex_fee + " + (₹" + fees + " fees) = ₹" + invested)
     print("buy avg: ₹" + buy_avg)
     print("buy now: ₹" + buy_now)
+    print("invested: ₹" + invested_ex_fee + " + (₹" + fees + " fees) = ₹" + invested)
     print_color("current: ₹" + current_value + " (" + pnl + ", " + pnlp + " %)", color)
     print_line()
