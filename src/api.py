@@ -1,15 +1,12 @@
-from datetime import datetime
 import time
 import requests
-import tzlocal
 from cryptography.hazmat.primitives.asymmetric import ed25519
 import json
 from util import *
 
 def server_time(endpoint) -> str:
     response = requests.get(link(endpoint)).json()
-    timestamp = response['serverTime'] / 1000
-    return "[" + datetime.fromtimestamp(timestamp, tzlocal.get_localzone()).strftime("%Y-%m-%d at %H:%M:%S") + "] "
+    return chronify(response['serverTime'])
 def ping(endpoint):
     return requests.get(link(endpoint)).ok
 
@@ -52,6 +49,7 @@ def sign_order(keys, endpoint, action, symbol, price, quantity) -> {int, dict}:
             'symbol': data['symbol'],
             'price': data['price'],
             'quantity': data['orig_qty'],
+            'time': chronify(data['created_time'])
         }
     elif response.status_code == 422:
         return 1, {} #wrong action or token
@@ -134,22 +132,24 @@ def order(keys, endpoint, action, ticker, quantity, price) -> {int, dict}:
     return sign_order(keys, endpoint, action, f"{ticker.upper()}/INR", price, quantity)
 
 def folio_display(portfolio):
-    for ticker in portfolio:
-        if ticker == "WALLET":
-           print("wallet: ₹" + decimalize(portfolio["WALLET"]['balance']))
-           break
-        token_display(portfolio[ticker], ticker, False)
-
     pnl = portfolio["STATS"]['pnl']
     color = num_to_color_bg(pnl)
+    color_dark = num_to_color_dark(pnl)
     pnl = decimalize(pnl)
     pnlp = decimalize(portfolio["STATS"]['pnlp'])
     tax = decimalize(portfolio["STATS"]['tax'])
     total_invest = decimalize(portfolio["STATS"]['total_invest'])
     current_value = decimalize(portfolio["STATS"]['current_value'])
 
-    print("tax paid: ₹" + tax)
-    print("total invested: ₹" + total_invest)
+    for ticker in portfolio:
+        if ticker == "WALLET":
+           print_color("WALLET", "bold_bg_yellow")
+           print_color("wallet: ₹" + decimalize(portfolio["WALLET"]['balance']), color_dark)
+           break
+        token_display(portfolio[ticker], ticker, False)
+
+    print_color("tax paid: ₹" + tax, color_dark)
+    print_color("total invested: ₹" + total_invest, color_dark)
     print_color("current value: ₹" + current_value + " (" + pnl + ", " + pnlp + " %)", color)
     print_line()
 def token_display(token,ticker, display_zero):
@@ -165,15 +165,16 @@ def token_display(token,ticker, display_zero):
 
     pnl = token['pnl']
     color = num_to_color(pnl)
+    color_dark = num_to_color_dark(pnl)
     pnl = decimalize(pnl)
     pnlp = decimalize(token['pnlp'])
 
     if (balance == "0.0" and locked == "0.0") and not display_zero:
         return
     print_color(token['name'] + " ($" + ticker + ")", "bold_bg_yellow")
-    print("tokens: ⦿" + balance + " (locked: ⦿" + locked + ")")
-    print("buy avg: ₹" + buy_avg)
-    print("buy now: ₹" + buy_now)
-    print("invested: ₹" + invested_ex_fee + " + (₹" + fees + " fees) = ₹" + invested)
+    print_color("tokens: ⦿" + balance + " (locked: ⦿" + locked + ")", color_dark)
+    print_color("buy avg: ₹" + buy_avg, color_dark)
+    print_color("buy now: ₹" + buy_now, color_dark)
+    print_color("invested: ₹" + invested_ex_fee + " + (₹" + fees + " fees) = ₹" + invested, color_dark)
     print_color("current: ₹" + current_value + " (" + pnl + ", " + pnlp + " %)", color)
     print_line()

@@ -1,4 +1,7 @@
 import os
+from datetime import datetime
+
+import tzlocal
 from dotenv import load_dotenv
 
 def env():
@@ -9,10 +12,22 @@ def link(end) -> str:
     return "https://coinswitch.co/trade/api/v2/" +  end
 
 def print_line():
-    print_color("==============================================", "white")
+    print_color("", "white")
 def print_color(text, color):
+    print(colorize(text, color))
+def colorize(text, color) -> str:
     colors = {
-        'black': '\x1b[90m',    # Bright variant of black (gray)
+        #darker
+        'dark_black': '\x1b[0;30m',
+        'dark_red': '\x1b[0;31m',
+        'dark_green': '\x1b[0;32m',
+        'dark_yellow': '\x1b[0;33m',
+        'dark_blue': '\x1b[0;34m',
+        'dark_magenta': '\x1b[0;35m',
+        'dark_cyan': '\x1b[0;36m',
+        'dark_white': '\x1b[0;37m',
+        #brighter
+        'black': '\x1b[90m',
         'red': '\x1b[91m',
         'green': '\x1b[92m',
         'yellow': '\x1b[93m',
@@ -20,7 +35,7 @@ def print_color(text, color):
         'magenta': '\x1b[95m',
         'cyan': '\x1b[96m',
         'white': '\x1b[97m',
-
+        #thicker
         'bold_black': '\x1b[1;90m',
         'bold_red': '\x1b[1;91m',
         'bold_green': '\x1b[1;92m',
@@ -29,7 +44,7 @@ def print_color(text, color):
         'bold_magenta': '\x1b[1;95m',
         'bold_cyan': '\x1b[1;96m',
         'bold_white': '\x1b[1;97m',
-
+        #inverted
         'bg_black': '\x1b[0;30;40m',
         'bg_red': '\x1b[0;30;41m',
         'bg_green': '\x1b[0;30;42m',
@@ -38,7 +53,7 @@ def print_color(text, color):
         'bg_magenta': '\x1b[0;30;45m',
         'bg_cyan': '\x1b[0;30;46m',
         'bg_white': '\x1b[0;30;47m',
-
+        #inverted thick
         'bold_bg_black': '\x1b[1;30;40m',
         'bold_bg_red': '\x1b[1;30;41m',
         'bold_bg_green': '\x1b[1;30;42m',
@@ -47,7 +62,7 @@ def print_color(text, color):
         'bold_bg_magenta': '\x1b[1;30;45m',
         'bold_bg_cyan': '\x1b[1;30;46m',
         'bold_bg_white': '\x1b[1;30;47m',
-
+        #underlined thick
         'bold_under_black': '\x1b[1;4;30m',
         'bold_under_red': '\x1b[1;4;31m',
         'bold_under_green': '\x1b[1;4;32m',
@@ -57,15 +72,20 @@ def print_color(text, color):
         'bold_under_cyan': '\x1b[1;4;36m',
         'bold_under_white': '\x1b[1;4;37m',
     }
-    print(colors.get(color, '') + text + '\x1b[0m')
+    return colors.get(color, '') + text + '\x1b[0m'
 def num_to_color(num) -> str:
     return 'bold_red' if num < 0 else 'bold_green'
+def num_to_color_dark(num) -> str:
+    return 'dark_red' if num < 0 else 'dark_green'
 def num_to_color_bg(num) -> str:
     return 'bold_bg_red' if num < 0 else 'bold_bg_green'
 
 def decimalize(val) -> str:
     rounded = float(int(val * 1000.0))/1000.0
     return str(rounded)
+def chronify(timestamp):
+    timestamp = timestamp / 1000
+    return "[" + datetime.fromtimestamp(timestamp, tzlocal.get_localzone()).strftime("%Y-%m-%d at %H:%M:%S") + "] "
 
 def headers(signature, key) -> dict:
     return {

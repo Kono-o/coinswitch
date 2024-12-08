@@ -81,25 +81,31 @@ class CoinSwitch:
         api_call = "-> api.portfolio -> "
         time = self.time()
         util.print_color(api_call + time, "bold_bg_blue")
-        util.print_color("fetching portfolio...", "bold_blue")
+        util.print_color("fetching portfolio...\n", "bold_blue")
         api.folio_display(self.portfolio)
 
     def order(self, action, ticker, quantity, price):
-        if quantity == 0 or price == 0:
-            print(
-                f"sending order to {action} ⦿{util.decimalize(quantity)} {ticker.upper()} for ₹{util.decimalize(price)}...")
-            util.print_color("failed!", "red")
-            print("not enough token or price.")
-            return
-        price_whole = (1.0/quantity) * price
+        price_whole = (1.0/(quantity + 0.000001)) * price
         api_call = f"-> api.order.{action} -> "
         time = self.time()
         ticker_upper = ticker.upper()
         util.print_color(api_call + time, "bold_bg_blue")
-        util.print_color(f"{action} order: ⦿{util.decimalize(quantity)} {ticker_upper} for ₹{util.decimalize(price)} (₹{util.decimalize(price_whole)} per token)", "bold_blue")
+        util.print_color(f"{action} order: ⦿{util.decimalize(quantity)} {ticker_upper} for ₹{util.decimalize(price)} "
+                         f"(₹{util.decimalize(price_whole)} per token)", "bold_blue")
+        choice = input(util.colorize("are you sure? (y/n):", "bold_under_yellow") + " ")
+        if choice != "y":
+            util.print_color("aborted!", "bold_bg_yellow")
+            util.print_line()
+            return
+        if quantity == 0 or price == 0:
+            util.print_color("failed!", "bold_bg_red")
+            util.print_color("cant sell 0.", "bold_red")
+            util.print_line()
+            return
         valid, order = api.sign_order(self.keys, self.endpoints['order'], action, ticker, price_whole, quantity)
         if valid == 0:
             util.print_color("success!", "bold_bg_green")
+            print("placed at:", order['time'])
             print("order id:", order['id'])
             util.print_line()
             return
@@ -109,9 +115,9 @@ class CoinSwitch:
             case 1:
                 util.print_color(f"${ticker_upper} not a valid token.", color)
             case 2:
-                util.print_color("not enough token or balance.", color)
+                util.print_color("not enough balance/exceeded limit.", color)
             case 3:
-                util.print_color("too less token. (less than ₹150)", color)
+                util.print_color("token amount less than ₹150.", color)
             case 4:
                 util.print_color("unexpected error.", color)
         util.print_line()
