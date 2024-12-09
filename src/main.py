@@ -5,5 +5,6 @@ def main():
     c.folio()
     c.metrics()
     c.candle("btc")
+    c.candle("xlm")
 
 main()
