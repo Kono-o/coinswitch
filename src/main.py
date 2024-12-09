@@ -1,15 +1,9 @@
-import coinswitch
+from crypto import *
 
 def main():
-    session = coinswitch.CS.boot()
-
-    session.pull("xrp")
-    session.pull("doge")
-    session.pull("xlm")
-
-    session.candle("eth")
-    session.candle("btc")
-
-    session.folio()
-
+    c = Crypto.boot()
+    c.folio()
+    c.candle("btc")
+    c.metrics()
+   
 main()

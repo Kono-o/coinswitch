@@ -4,7 +4,11 @@ from dotenv import load_dotenv
 
 def env():
     load_dotenv()
-    return {'api': os.getenv("API"), 'secret': os.getenv("SECRET")}
+    return {
+            'api': os.getenv("API"),
+            'secret': os.getenv("SECRET"),
+            'cmc': os.getenv("CMC")
+        }
 
 def link(end) -> str:
     return "https://coinswitch.co/trade/api/v2/" +  end
@@ -77,10 +81,32 @@ def num_to_color_dark(num) -> str:
     return 'dark_red' if num < 0 else 'dark_green'
 def num_to_color_bg(num) -> str:
     return 'bold_bg_red' if num < 0 else 'bold_bg_green'
+def num_to_greed(num) -> str:
+    if num <= 33:
+        return "bold_red"
+    if num <= 66:
+        return "bold_yellow"
+    else:
+        return "bold_green"
 
-def decimalize(val) -> str:
-    rounded = float(int(val * 1000.0))/1000.0
-    return str(rounded)
+def num_format_huge(val) -> str:
+    if val >= 1e12:
+        return f"{val / 1e12:.2f}T"
+    if val >= 1e9:
+        return f"{val / 1e9:.2f}B"
+    return num_format(val)
+
+def ten_pow(x):
+    return pow(10,x)
+
+def num_format(val) -> str:
+    tens = ten_pow(2)
+    return str(float(int(val * tens))/tens)
+
+def token_format(val) -> str:
+    tens = ten_pow(5)
+    return str(float(int(val * tens)) / tens)
+
 def chronify(timestamp):
     timestamp = timestamp / 1000
     return "[" + datetime.fromtimestamp(timestamp, tzlocal.get_localzone()).strftime("%Y-%m-%d at %H:%M:%S") + "] "

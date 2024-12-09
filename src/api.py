@@ -142,7 +142,7 @@ def folio(key, signature, endpoint, tax) -> dict:
     total_pnlp = (total_pnl / total_invest) * 100.0
     portfolio['STATS'] = {
         'total_invest' : total_invest,
-        'current_value' : total_invest,
+        'current_value' : current_invest_value,
         'pnl' : total_pnl,
         'pnlp' : total_pnlp,
         'tax' : tax
@@ -163,16 +163,16 @@ def folio_display(portfolio):
     pnl = portfolio["STATS"]['pnl']
     color = util.num_to_color_bg(pnl)
     color_dark = util.num_to_color_dark(pnl)
-    pnl = util.decimalize(pnl)
-    pnlp = util.decimalize(portfolio["STATS"]['pnlp'])
-    tax = util.decimalize(portfolio["STATS"]['tax'])
-    total_invest = util.decimalize(portfolio["STATS"]['total_invest'])
-    current_value = util.decimalize(portfolio["STATS"]['current_value'])
+    pnl = util.num_format(pnl)
+    pnlp = util.num_format(portfolio["STATS"]['pnlp'])
+    tax = util.num_format(portfolio["STATS"]['tax'])
+    total_invest = util.num_format(portfolio["STATS"]['total_invest'])
+    current_value = util.num_format(portfolio["STATS"]['current_value'])
 
     for ticker in portfolio:
         if ticker == "WALLET":
            util.print_color("WALLET", "bold_bg_yellow")
-           util.print_color("wallet: ₹" + util.decimalize(portfolio["WALLET"]['balance']), color_dark)
+           util.print_color("wallet: ₹" + util.num_format(portfolio["WALLET"]['balance']), color_dark)
            break
         token_display(portfolio[ticker], ticker, False)
 
@@ -181,21 +181,21 @@ def folio_display(portfolio):
     util.print_color("current value: ₹" + current_value + " (" + pnl + ", " + pnlp + " %)", color)
     util.print_line()
 def token_display(token,ticker, display_zero):
-    balance = util.decimalize(token['balance'])
-    locked = util.decimalize(token['locked'])
-    invested = util.decimalize(token['invested'])
-    invested_ex_fee = util.decimalize(token['invested_ex_fee'])
-    current_value = util.decimalize(token['current_value'])
-    fees = util.decimalize(token['fees'])
+    balance = util.token_format(token['balance'])
+    locked = util.token_format(token['locked'])
+    invested = util.num_format(token['invested'])
+    invested_ex_fee = util.num_format(token['invested_ex_fee'])
+    current_value = util.num_format(token['current_value'])
+    fees = util.num_format(token['fees'])
 
-    buy_avg = util.decimalize(token['buy_avg'])
-    buy_now = util.decimalize(token['buy_now'])
+    buy_avg = util.num_format(token['buy_avg'])
+    buy_now = util.num_format(token['buy_now'])
 
     pnl = token['pnl']
     color = util.num_to_color(pnl)
     color_dark = util.num_to_color_dark(pnl)
-    pnl = util.decimalize(pnl)
-    pnlp = util.decimalize(token['pnlp'])
+    pnl = util.num_format(pnl)
+    pnlp = util.num_format(token['pnlp'])
 
     if (balance == "0.0" and locked == "0.0") and not display_zero:
         return
@@ -206,3 +206,32 @@ def token_display(token,ticker, display_zero):
     util.print_color("invested: ₹" + invested_ex_fee + " + (₹" + fees + " fees) = ₹" + invested, color_dark)
     util.print_color("current: ₹" + current_value + " (₹" + pnl + ", " + pnlp + " %)", color)
     util.print_line()
+
+def metrics(key) -> {bool, dict}:
+    url_metrics = 'https://pro-api.coinmarketcap.com/v1/global-metrics/quotes/latest'
+    url_greed = "https://pro-api.coinmarketcap.com/v3/fear-and-greed/latest"
+    fiat = 'INR'
+    headers = {
+        'Accepts': 'application/json',
+        'X-CMC_PRO_API_KEY': key,
+    }
+    params = {
+        'convert': fiat
+    }
+    metrics_resp = requests.get(url_metrics, headers = headers, params = params)
+    greed_resp = requests.get(url_greed, headers=headers)
+    if metrics_resp .ok and greed_resp.ok:
+        metrics_data = metrics_resp.json()['data']
+        greed_data = greed_resp.json()['data']
+        return True, {
+            'btc_dom': metrics_data['btc_dominance'],
+            'eth_dom': metrics_data['eth_dominance'],
+            'cap': metrics_data['quote'][fiat]['total_market_cap'],
+            'alt_cap': metrics_data['quote'][fiat]['altcoin_market_cap'],
+            'volume': metrics_data['quote'][fiat]['total_volume_24h'],
+            'alt_volume': metrics_data['quote'][fiat]['altcoin_volume_24h'],
+            'greed': [greed_data['value'], greed_data['value_classification'].lower() ]
+        }
+
+    else:
+        return False

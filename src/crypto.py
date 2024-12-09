@@ -2,7 +2,7 @@ import api, util
 from dataclasses import dataclass
 
 @dataclass
-class CS:
+class Crypto:
     fiscal_year: str
     keys: dict
     signatures: dict
@@ -81,6 +81,28 @@ class CS:
         util.print_color(api_call + time, "bold_bg_blue")
         util.print_color("fetching portfolio...", "bold_blue")
         api.folio_display(self.portfolio)
+    def metrics(self):
+        api_call = "-> api.metrics -> "
+        time = self.time()
+        util.print_color(api_call + time, "bold_bg_blue")
+        util.print_color("fetching metrics...", "bold_blue")
+        valid, metrics = api.metrics(self.keys['cmc'])
+        if valid:
+            btc_dom = metrics['btc_dom']
+            eth_dom = metrics['eth_dom']
+            misc_dom = 100 - btc_dom - eth_dom
+            greed, greed_str = metrics['greed']
+            util.print_color(f"{util.num_format(btc_dom)}% (btc) : {util.num_format(eth_dom)}% (eth) : {util.num_format(misc_dom)}% (others) ", "bold_bg_yellow")
+            util.print_color(f"sentiment: {greed_str} ({greed}/100)", util.num_to_greed(greed))
+            util.print_color(f'total cap: ₹{util.num_format_huge(metrics['cap'])}', "dark_yellow")
+            util.print_color(f'total volume 24h: ₹{util.num_format_huge(metrics['volume'])}', "dark_yellow")
+            util.print_color(f'alt-coin cap: ₹{util.num_format_huge(metrics['alt_cap'])}', "dark_yellow")
+            util.print_color(f'alt-coin volume 24h: ₹{util.num_format_huge(metrics['alt_volume'])}', "dark_yellow")
+            util.print_line()
+            return
+        else:
+            util.print_color("could not fetch metrics.", "bold_red")
+            util.print_line()
 
     def order(self, action, ticker, quantity, price):
         price_whole = (1.0/(quantity + 0.000001)) * price
@@ -88,11 +110,11 @@ class CS:
         time = self.time()
         ticker_upper = ticker.upper()
         util.print_color(api_call + time, "bold_bg_blue")
-        util.print_color(f"{action} order: ⦿{util.decimalize(quantity)} {ticker_upper} for ₹{util.decimalize(price)} "
-                         f"(₹{util.decimalize(price_whole)} per token)", "bold_blue")
-        choice = input(util.colorize("are you sure? (y/n):", "bold_under_yellow") + " ")
-        if choice != "y":
-            util.print_color("aborted!", "bold_bg_yellow")
+        util.print_color(f"{action} order: ⦿{util.num_format(quantity)} {ticker_upper} for ₹{util.num_format(price)} "
+                         f"(₹{util.num_format(price_whole)} per token)", "bold_blue")
+        choice = input(util.colorize("are you sure? (y/n):", "bold_under_yellow") + " ").lower()
+        if choice not in "yes":
+            util.print_color("aborted!", "bold_bg_magenta")
             util.print_line()
             return
         if quantity == 0 or price == 0:
@@ -103,8 +125,8 @@ class CS:
         valid, order = api.sign_order(self.keys, self.endpoints['order'], action, ticker, price_whole, quantity)
         if valid == 0:
             util.print_color("success!", "bold_bg_green")
-            print("placed at:", order['time'])
-            print("order id:", order['id'])
+            util.print_color("placed at: " + order['time'], "bold_blue")
+            util.print_color("order id: " + order['id'], "bold_blue")
             util.print_line()
             return
         util.print_color("failed!", "bold_bg_red")
